@@ -62,11 +62,18 @@ export default function MetadataPDF() {
         const pdfDoc = await PDFDocument.load(buffer);
         setTotalPages(pdfDoc.getPageCount());
 
+        const rawKeywords = pdfDoc.getKeywords();
+        const keywordsStr = typeof rawKeywords === "string"
+          ? rawKeywords
+          : Array.isArray(rawKeywords)
+          ? (rawKeywords as string[]).join(", ")
+          : "";
+
         setMeta({
           title: pdfDoc.getTitle() || "",
           author: pdfDoc.getAuthor() || "",
           subject: pdfDoc.getSubject() || "",
-          keywords: (pdfDoc.getKeywords() || []).join(", "),
+          keywords: keywordsStr,
           creator: pdfDoc.getCreator() || "",
           producer: pdfDoc.getProducer() || "",
           creationDate: pdfDoc.getCreationDate() ? pdfDoc.getCreationDate()!.toLocaleDateString() : "-",

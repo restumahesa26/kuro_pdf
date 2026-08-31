@@ -43,7 +43,13 @@ type Tool = {
   isNew?: boolean;
 };
 
-const toolGroups = [
+interface ToolGroup {
+  title: string;
+  description: string;
+  tools: Tool[];
+}
+
+const toolGroups: ToolGroup[] = [
   {
     title: "Kelola & Tata Letak Halaman PDF",
     description: "Gabungkan, pisahkan, hapus, atur urutan, dan ubah tata letak halaman PDF secara lokal.",
