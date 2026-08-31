@@ -1,11 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { PDFDocument } from "pdf-lib";
 import Dropzone from "@/components/Dropzone";
-import { Minimize2, Upload, Trash2, Download, CheckCircle2 } from "lucide-react";
-
-// Set worker later when needed
+import { Minimize2, Trash2, Download, CheckCircle2 } from "lucide-react";
 
 export default function CompressPDF() {
   const [file, setFile] = useState<File | null>(null);
@@ -14,6 +12,15 @@ export default function CompressPDF() {
   const [compressedPdfUrl, setCompressedPdfUrl] = useState<string | null>(null);
   const [originalSize, setOriginalSize] = useState<number>(0);
   const [compressedSize, setCompressedSize] = useState<number>(0);
+  const downloadRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (compressedPdfUrl) {
+      setTimeout(() => {
+        downloadRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 150);
+    }
+  }, [compressedPdfUrl]);
 
   const handleFileDrop = (files: File[]) => {
     if (files && files[0]) {
@@ -47,7 +54,6 @@ export default function CompressPDF() {
       const pdf = await pdfjsLib.getDocument({ data: fileBuffer }).promise;
       const newPdfDoc = await PDFDocument.create();
 
-      // Determine quality and scale based on compression level
       let scale = 1.5;
       let quality = 0.7;
 
@@ -63,7 +69,6 @@ export default function CompressPDF() {
         const page = await pdf.getPage(i);
         const viewport = page.getViewport({ scale });
 
-        // Create a canvas to render the page
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
 
@@ -72,7 +77,6 @@ export default function CompressPDF() {
         canvas.width = viewport.width;
         canvas.height = viewport.height;
 
-        // Render PDF page into canvas context
         const renderContext = {
           canvasContext: ctx,
           viewport: viewport,
@@ -80,18 +84,13 @@ export default function CompressPDF() {
 
         await page.render(renderContext as any).promise;
 
-        // Get JPEG image data from canvas
         const dataUrl = canvas.toDataURL("image/jpeg", quality);
-
-        // Fetch the data URL as an array buffer to embed in pdf-lib
         const imgRes = await fetch(dataUrl);
         const imgBuffer = await imgRes.arrayBuffer();
 
-        // Embed the JPEG image
         const embeddedImage = await newPdfDoc.embedJpg(imgBuffer);
         const imgDims = embeddedImage.scale(1);
 
-        // Add a page matching the image dimensions
         const newPage = newPdfDoc.addPage([imgDims.width, imgDims.height]);
         newPage.drawImage(embeddedImage, {
           x: 0,
@@ -101,7 +100,6 @@ export default function CompressPDF() {
         });
       }
 
-      // Save the newly constructed compressed PDF
       const compressedPdfBytes = await newPdfDoc.save();
       const finalSize = compressedPdfBytes.length;
 
@@ -127,59 +125,65 @@ export default function CompressPDF() {
   };
 
   return (
-    <div className="container mx-auto px-6 py-12 max-w-4xl">
-      <div className="text-center mb-12">
-        <div className="inline-flex items-center justify-center p-3.5 bg-slate-100 text-slate-800 rounded-2xl mb-6 shadow-sm border border-slate-200/50">
-          <Minimize2 size={32} strokeWidth={1.5} />
+    <div className="container mx-auto px-4 sm:px-6 md:px-10 py-8 sm:py-12 max-w-4xl">
+      <div className="text-center mb-8 sm:mb-12">
+        <div className="inline-flex items-center justify-center p-3.5 bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 rounded-2xl mb-4 sm:mb-6 shadow-sm border border-sky-100 dark:border-sky-900/50">
+          <Minimize2 size={30} strokeWidth={1.75} />
         </div>
-        <h1 className="text-3xl md:text-4xl font-semibold text-slate-900 tracking-tight mb-4">Kompres PDF</h1>
-        <p className="text-slate-500 text-lg">
-          Perkecil ukuran file PDF Anda tanpa mengorbankan kualitas.
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-white tracking-tight mb-2 sm:mb-4">
+          Kompres PDF
+        </h1>
+        <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-lg max-w-xl mx-auto leading-relaxed">
+          Perkecil ukuran file PDF Anda tanpa mengorbankan kualitas secara drastis.
         </p>
       </div>
 
-      <div className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-white/60 mb-10">
+      <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl p-5 sm:p-8 rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.3)] border border-white/80 dark:border-slate-800 mb-8 sm:mb-10 transition-colors">
         {!file ? (
           <Dropzone onFileDrop={handleFileDrop} accept="application/pdf" className="h-64" />
         ) : (
-          <div className="mt-4">
-            <div className="flex items-center justify-between p-5 bg-slate-50 rounded-2xl border border-slate-200 mb-8">
+          <div className="mt-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 mb-6 sm:mb-8 gap-4">
               <div>
-                <p className="font-medium text-slate-800 mb-1">{file.name}</p>
-                <p className="text-xs text-slate-500">{formatBytes(originalSize)}</p>
+                <p className="font-semibold text-slate-800 dark:text-slate-100 mb-0.5 text-sm sm:text-base">{file.name}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{formatBytes(originalSize)}</p>
               </div>
               <button
                 onClick={removeFile}
-                className="p-2.5 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs sm:text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-xl transition-colors font-medium border border-red-200/60 dark:border-red-900/50"
                 title="Hapus file"
               >
-                <Trash2 size={20} strokeWidth={1.5} />
+                <Trash2 size={16} strokeWidth={1.5} />
+                Ganti File
               </button>
             </div>
 
-            <div className="mb-8">
-              <h3 className="font-medium text-slate-800 mb-5 text-sm uppercase tracking-wide">Pilih Tingkat Kompresi</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="mb-6 sm:mb-8">
+              <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-3 sm:mb-4 text-xs sm:text-sm uppercase tracking-wide">
+                Pilih Tingkat Kompresi
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 {[
                   { id: "extreme", label: "Kompresi Ekstrem", desc: "Kualitas rendah, ukuran sangat kecil" },
-                  { id: "recommended", label: "Kompresi Disarankan", desc: "Kualitas baik, kompresi ideal" },
+                  { id: "recommended", label: "Kompresi Disarankan", desc: "Kualitas seimbang, kompresi ideal" },
                   { id: "less", label: "Kompresi Ringan", desc: "Kualitas tinggi, ukuran agak kecil" },
                 ].map((level) => (
                   <button
                     key={level.id}
                     onClick={() => setCompressionLevel(level.id as any)}
-                    className={`flex flex-col items-start p-5 rounded-2xl border-2 transition-all duration-300 ${compressionLevel === level.id
-                        ? "border-slate-800 bg-slate-900 text-white shadow-md"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                      }`}
+                    className={`flex flex-col items-start p-4 sm:p-5 rounded-2xl border-2 transition-all duration-200 ${
+                      compressionLevel === level.id
+                        ? "border-sky-600 dark:border-sky-500 bg-sky-50/70 dark:bg-sky-950/40 text-slate-900 dark:text-white shadow-sm"
+                        : "border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600"
+                    }`}
                   >
-                    <div className="flex items-center justify-between w-full mb-2">
-                      <span className={`font-semibold ${compressionLevel === level.id ? 'text-white' : 'text-slate-900'}`}>
+                    <div className="flex items-center justify-between w-full mb-1.5">
+                      <span className="font-semibold text-sm sm:text-base">
                         {level.label}
                       </span>
-                      {compressionLevel === level.id && <CheckCircle2 size={18} className="text-white" />}
+                      {compressionLevel === level.id && <CheckCircle2 size={18} className="text-sky-600 dark:text-sky-400" />}
                     </div>
-                    <span className={`text-xs text-left leading-relaxed ${compressionLevel === level.id ? 'text-slate-300' : 'text-slate-500'}`}>
+                    <span className="text-xs text-left leading-relaxed text-slate-500 dark:text-slate-400">
                       {level.desc}
                     </span>
                   </button>
@@ -187,13 +191,13 @@ export default function CompressPDF() {
               </div>
             </div>
 
-            <div className="flex justify-center mt-10">
+            <div className="flex justify-center mt-6 sm:mt-8">
               <button
                 onClick={compressPdf}
                 disabled={isProcessing}
-                className="w-full sm:w-auto px-10 py-4 bg-slate-900 text-white rounded-2xl font-medium hover:bg-slate-800 focus:ring-4 focus:ring-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                className="w-full sm:w-auto px-8 sm:px-10 py-3.5 sm:py-4 bg-sky-600 hover:bg-sky-700 text-white rounded-2xl font-semibold focus:ring-4 focus:ring-sky-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm text-xs sm:text-base"
               >
-                {isProcessing ? "Mengompresi PDF..." : "Kompres PDF"}
+                {isProcessing ? "Sedang Mengompres PDF..." : "Kompres PDF Sekarang"}
               </button>
             </div>
           </div>
@@ -201,20 +205,23 @@ export default function CompressPDF() {
       </div>
 
       {compressedPdfUrl && (
-        <div className="bg-emerald-50/50 border border-emerald-100 p-8 rounded-3xl text-center shadow-sm">
-          <div className="inline-flex items-center justify-center p-3 bg-emerald-100 text-emerald-700 rounded-full mb-4">
+        <div
+          ref={downloadRef}
+          className="bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 p-6 sm:p-8 rounded-3xl text-center shadow-sm backdrop-blur-md animate-in fade-in slide-in-from-bottom-4 duration-300"
+        >
+          <div className="inline-flex items-center justify-center p-3 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-full mb-4">
             <CheckCircle2 size={28} />
           </div>
-          <h3 className="text-xl font-semibold text-emerald-900 mb-2">PDF Berhasil Dikompres!</h3>
-          <p className="text-emerald-700/80 mb-8">
-            Ukuran file Anda berkurang dari <strong>{formatBytes(originalSize)}</strong> menjadi <strong>{formatBytes(compressedSize)}</strong>
+          <h3 className="text-xl sm:text-2xl font-bold text-emerald-950 dark:text-emerald-100 mb-2">PDF Berhasil Dikompres!</h3>
+          <p className="text-xs sm:text-sm text-emerald-800/80 dark:text-emerald-400 mb-6 max-w-md mx-auto">
+            Ukuran file berkurang dari <strong>{formatBytes(originalSize)}</strong> menjadi <strong>{formatBytes(compressedSize)}</strong> (Hemat {Math.max(0, Math.round(((originalSize - compressedSize) / originalSize) * 100))}%)
           </p>
           <a
             href={compressedPdfUrl}
-            download={`compressed-${file?.name || "document"}`}
-            className="inline-flex items-center justify-center gap-3 px-8 py-3.5 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 hover:shadow-md transition-all"
+            download={`compressed-${file?.name || "document.pdf"}`}
+            className="inline-flex items-center justify-center gap-2.5 px-6 sm:px-8 py-3 sm:py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-semibold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5"
           >
-            <Download size={20} strokeWidth={2} />
+            <Download size={18} strokeWidth={2} />
             Unduh PDF Sekarang
           </a>
         </div>

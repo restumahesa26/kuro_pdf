@@ -1,23 +1,28 @@
-import Link from 'next/link';
+"use client";
+
+import Link from "next/link";
+import { FileText } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
 
 export default function Navbar() {
   return (
-    <nav className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/70 border-b border-slate-200/50 shadow-sm transition-all duration-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
-            <Link href="/" className="flex items-center gap-2 group">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-500/20 group-hover:shadow-blue-500/40 transition-all duration-300 transform group-hover:-translate-y-0.5">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-              </div>
-              <span className="font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700 tracking-tight">Kuro PDF</span>
-            </Link>
+    <header className="fixed top-0 inset-x-0 z-50 w-full border-b border-slate-200/60 dark:border-slate-800/80 bg-white/70 dark:bg-slate-900/80 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.3)] transition-colors duration-300">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 md:px-10">
+        {/* Logo and Brand */}
+        <Link href="/" className="flex items-center gap-2.5 group select-none">
+          <div className="p-2 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-xl text-white shadow-md shadow-blue-500/20 group-hover:shadow-blue-500/40 group-hover:scale-105 transition-all duration-300">
+            <FileText size={18} strokeWidth={2.5} />
           </div>
-          <div className="hidden md:flex space-x-6">
-            <Link href="/" className="text-slate-600 hover:text-blue-600 font-medium transition-colors text-sm">Beranda</Link>
-          </div>
+          <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white transition-colors">
+            Kuro PDF
+          </span>
+        </Link>
+
+        {/* Right side: Dark / Light Mode Toggle */}
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
         </div>
       </div>
-    </nav>
+    </header>
   );
 }

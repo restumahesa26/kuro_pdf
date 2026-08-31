@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Crop as CropIcon, Upload, Trash2, Download, Loader2, Copy } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Crop as CropIcon, Trash2, Download, Loader2, Copy, CheckCircle2 } from "lucide-react";
 import { PDFDocument } from "pdf-lib";
 import Dropzone from "@/components/Dropzone";
 import ReactCrop, { type Crop } from "react-image-crop";
@@ -11,7 +11,7 @@ interface PageCropItem {
   id: string;
   originalIndex: number;
   imageUrl: string;
-  cropPercent?: Crop; // store as percentage for resolution independence
+  cropPercent?: Crop;
 }
 
 export default function CropPDF() {
@@ -21,6 +21,15 @@ export default function CropPDF() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const downloadRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (pdfUrl) {
+      setTimeout(() => {
+        downloadRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 150);
+    }
+  }, [pdfUrl]);
 
   const handleFileDrop = async (files: File[]) => {
     if (files && files[0]) {
@@ -44,7 +53,7 @@ export default function CropPDF() {
           const newItems: PageCropItem[] = [];
           for (let i = 1; i <= totalPages; i++) {
             const page = await pdf.getPage(i);
-            const viewport = page.getViewport({ scale: 1.0 }); // Full scale for cropping
+            const viewport = page.getViewport({ scale: 1.0 });
             const canvas = document.createElement("canvas");
             const ctx = canvas.getContext("2d");
 
@@ -115,13 +124,11 @@ export default function CropPDF() {
         const page = pages[item.originalIndex];
         const { width, height } = page.getSize();
 
-        // Convert percentage crop back to actual PDF dimensions
         const cropX = (item.cropPercent.x / 100) * width;
         const cropY = (item.cropPercent.y / 100) * height;
         const cropWidth = (item.cropPercent.width / 100) * width;
         const cropHeight = (item.cropPercent.height / 100) * height;
 
-        // In PDF, Y coordinate goes from bottom to top, whereas crop percent goes from top to bottom
         const pdfCropY = height - cropY - cropHeight;
 
         page.setCropBox(cropX, pdfCropY, cropWidth, cropHeight);
@@ -148,60 +155,62 @@ export default function CropPDF() {
   const activeItem = items[activeIndex];
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-5xl">
-      <div className="text-center mb-10">
-        <div className="inline-flex items-center justify-center p-3 bg-rose-100 text-rose-700 rounded-full mb-4">
-          <CropIcon size={32} />
+    <div className="container mx-auto px-4 sm:px-6 md:px-10 py-8 sm:py-12 max-w-5xl">
+      <div className="text-center mb-8 sm:mb-12">
+        <div className="inline-flex items-center justify-center p-3.5 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 rounded-2xl mb-4 sm:mb-6 shadow-sm border border-rose-100 dark:border-rose-900/50">
+          <CropIcon size={30} strokeWidth={1.75} />
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Potong PDF</h1>
-        <p className="text-gray-600">
-          Buang margin kosong pada file PDF Anda per halaman sesuai keinginan.
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-white tracking-tight mb-2 sm:mb-4">
+          Potong (Crop) PDF
+        </h1>
+        <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-lg max-w-xl mx-auto leading-relaxed">
+          Buang margin kosong atau potong area tertentu pada file PDF Anda secara visual.
         </p>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8">
+      <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl p-5 sm:p-8 rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.3)] border border-white/80 dark:border-slate-800 mb-8 sm:mb-10 transition-colors">
         {!file ? (
-          <Dropzone onFileDrop={handleFileDrop} accept="application/pdf" />
+          <Dropzone onFileDrop={handleFileDrop} accept="application/pdf" className="h-64" />
         ) : (
-          <div className="mt-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 mb-6 gap-4">
+          <div className="mt-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 mb-6 sm:mb-8 gap-4">
               <div>
-                <p className="font-medium text-gray-800">{file.name}</p>
-                <p className="text-sm text-gray-500">{items.length} Halaman</p>
+                <p className="font-semibold text-slate-800 dark:text-slate-100 mb-0.5 text-sm sm:text-base">{file.name}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{items.length} Halaman</p>
               </div>
               <button
                 onClick={removeFile}
-                className="px-4 py-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors flex items-center gap-2 font-medium"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs sm:text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-xl transition-colors font-medium border border-red-200/60 dark:border-red-900/50"
               >
-                <Trash2 size={18} />
+                <Trash2 size={16} />
                 Ganti File
               </button>
             </div>
 
             {isLoadingFiles ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <Loader2 size={40} className="text-rose-500 animate-spin mb-4" />
-                <p className="text-gray-600 font-medium">Sedang memuat halaman PDF...</p>
+              <div className="flex flex-col items-center justify-center py-16 bg-slate-50/50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800">
+                <Loader2 size={36} className="text-rose-500 animate-spin mb-4" />
+                <p className="text-slate-600 dark:text-slate-300 font-medium text-sm">Sedang memuat halaman PDF...</p>
               </div>
             ) : (
               <>
                 {activeItem && (
-                  <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-6 flex flex-col items-center">
-                    <div className="w-full flex justify-between items-center mb-4">
-                      <h3 className="font-medium text-gray-700">
+                  <div className="bg-slate-50/80 dark:bg-slate-800/40 p-4 sm:p-6 rounded-2xl border border-slate-200/70 dark:border-slate-700/60 mb-6 flex flex-col items-center">
+                    <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+                      <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
                         Memotong Halaman {activeItem.originalIndex + 1}
                       </h3>
                       <button
                         onClick={applyCropToAll}
-                        className="px-4 py-2 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                        className="px-3.5 py-1.5 bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-950/80 border border-rose-200 dark:border-rose-900/60 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5"
                         title="Terapkan ukuran potong ini ke seluruh halaman"
                       >
-                        <Copy size={16} />
-                        Terapkan ke Semua
+                        <Copy size={14} />
+                        Terapkan ke Semua Halaman
                       </button>
                     </div>
                     
-                    <div className="border border-gray-300 shadow-sm bg-white overflow-hidden max-w-full">
+                    <div className="border border-slate-300 dark:border-slate-700 shadow-sm bg-white dark:bg-slate-900 rounded-xl overflow-hidden max-w-full">
                       <ReactCrop 
                         crop={activeItem.cropPercent} 
                         onChange={(pixelCrop, percentCrop) => setCropForActivePage(pixelCrop, percentCrop)}
@@ -217,17 +226,17 @@ export default function CropPDF() {
                 )}
 
                 {/* Thumbnail Carousel */}
-                <div className="mb-8">
-                  <h4 className="text-sm font-medium text-gray-500 mb-3">Pilih Halaman:</h4>
-                  <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
+                <div className="mb-6 sm:mb-8">
+                  <h4 className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Pilih Halaman:</h4>
+                  <div className="flex gap-3 overflow-x-auto pb-3 custom-scrollbar">
                     {items.map((item, index) => (
                       <button
                         key={item.id}
                         onClick={() => setActiveIndex(index)}
-                        className={`relative shrink-0 w-24 h-32 rounded-lg border-2 overflow-hidden transition-all ${
+                        className={`relative shrink-0 w-20 sm:w-24 h-28 sm:h-32 rounded-xl border-2 overflow-hidden transition-all ${
                           activeIndex === index 
-                            ? "border-rose-500 shadow-md ring-2 ring-rose-200" 
-                            : "border-gray-200 hover:border-rose-300 opacity-70 hover:opacity-100"
+                            ? "border-rose-500 shadow-md ring-2 ring-rose-200 dark:ring-rose-900" 
+                            : "border-slate-200 dark:border-slate-700 hover:border-rose-300 opacity-75 hover:opacity-100"
                         }`}
                       >
                         <img 
@@ -235,24 +244,24 @@ export default function CropPDF() {
                           className="w-full h-full object-cover" 
                           alt={`Thumb ${index + 1}`} 
                         />
-                        <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-xs py-1 text-center font-medium">
+                        <div className="absolute bottom-0 inset-x-0 bg-slate-950/70 text-white text-[10px] sm:text-xs py-1 text-center font-medium">
                           Hal {index + 1}
                         </div>
                         {item.cropPercent && item.cropPercent.width > 0 && (
-                          <div className="absolute top-1 right-1 w-3 h-3 bg-rose-500 rounded-full border border-white shadow-sm" title="Sudah dipotong" />
+                          <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white shadow-sm" title="Sudah dipotong" />
                         )}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <div className="flex justify-center">
+                <div className="flex justify-center pt-2">
                   <button
                     onClick={cropPdf}
                     disabled={isProcessing}
-                    className="w-full sm:w-auto px-10 py-3 bg-rose-600 text-white rounded-xl font-medium hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-lg"
+                    className="w-full sm:w-auto px-8 sm:px-10 py-3.5 sm:py-4 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-semibold focus:ring-4 focus:ring-rose-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 text-xs sm:text-base"
                   >
-                    {isProcessing ? "Memproses..." : "Potong PDF"}
+                    {isProcessing ? "Sedang Memotong PDF..." : "Potong PDF Sekarang"}
                   </button>
                 </div>
               </>
@@ -262,14 +271,23 @@ export default function CropPDF() {
       </div>
 
       {pdfUrl && (
-        <div className="bg-green-50 border border-green-200 p-6 rounded-2xl text-center">
-          <h3 className="text-lg font-semibold text-green-800 mb-4">PDF Berhasil Dipotong!</h3>
+        <div
+          ref={downloadRef}
+          className="bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 p-6 sm:p-8 rounded-3xl text-center shadow-sm backdrop-blur-md animate-in fade-in slide-in-from-bottom-4 duration-300"
+        >
+          <div className="inline-flex items-center justify-center p-3 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-full mb-4">
+            <CheckCircle2 size={28} />
+          </div>
+          <h3 className="text-xl sm:text-2xl font-bold text-emerald-950 dark:text-emerald-100 mb-2">PDF Berhasil Dipotong!</h3>
+          <p className="text-xs sm:text-sm text-emerald-800/80 dark:text-emerald-400 mb-6 max-w-md mx-auto">
+            Area yang tidak diinginkan telah dipotong dan file PDF baru siap diunduh.
+          </p>
           <a
             href={pdfUrl}
-            download={`cropped-${file?.name || "document"}`}
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors"
+            download={`cropped-${file?.name || "document.pdf"}`}
+            className="inline-flex items-center justify-center gap-2.5 px-6 sm:px-8 py-3 sm:py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-semibold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5"
           >
-            <Download size={20} />
+            <Download size={18} />
             Unduh Hasil PDF
           </a>
         </div>
